@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>AI Chatbot</title>
+        <link rel="stylesheet" href="Chatbot.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    </head>
+
+    <body>
+        <div class="chatbot-container">
+            <div class="chat-card">
+                <div class="chat-header">
+                    <i class="fa-solid fa-sparkles"></i>
+                    <h2>Sher Marketing AI Chatbot</h2>
+                </div>
+
+                <div class="chat-body" id="chat-box">
+                    <!-- Messages will appear here -->
+                </div>
+
+                <div class="chat-suggestions">
+                    <p><strong>Suggestions on what to ask Our AI</strong></p>
+                    <div class="suggestion-buttons">
+                        <button class="suggestion">Hello, how can I help you today?</button>
+                        <button class="suggestion">I want to know about marketing.</button>
+                    </div>
+                </div>
+
+                <div class="chat-input">
+                    <input type="text" id="user-input" placeholder="Ask me anything about your marketing..." />
+                    <button id="send-btn"><i class="fa-solid fa-paper-plane"></i></button>
+                </div>
+            </div>
+        </div>
+
+       <script>
+            const sendBtn = document.getElementById('send-btn');
+            const userInput = document.getElementById('user-input');
+            const chatBox = document.getElementById('chat-box');
+            const suggestions = document.querySelectorAll('.suggestion');
+
+            const LOGIN_URL = "https://2387f9d2bd01.ngrok-free.app/login";
+            const CHAT_URL = "https://2387f9d2bd01.ngrok-free.app/chat";
+
+            let authToken = ""; // <-- TOKEN STORED HERE
+
+            // 🌟 1) AUTO LOGIN FUNCTION
+            async function loginUser() {
+                try {
+                    const response = await fetch(LOGIN_URL, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            username: "daniel",
+                            password: "Admin@123",
+                            rememberMe: true
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    // Save the token
+                    authToken = data.token || "";
+
+                    console.log("New Token Received:", authToken);
+                } catch (err) {
+                    console.error("Login API Failed:", err);
+                }
+            }
+
+            // 🔁 2) CALL LOGIN EVERY 2 MINUTES
+            loginUser(); // immediate login
+            setInterval(loginUser, 120000); // 120000ms = 2 minutes
+
+            // Suggestion Click
+            suggestions.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    userInput.value = btn.innerText;
+                    sendMessage();
+                });
+            });
+
+            // Send on button click or Enter key
+            sendBtn.addEventListener('click', sendMessage);
+            userInput.addEventListener('keypress', e => {
+                if (e.key === 'Enter') sendMessage();
+            });
+
+            // Send message function
+            async function sendMessage() {
+                const text = userInput.value.trim();
+                if (!text) return;
+
+                // ---------------- USER MESSAGE ----------------
+                const userMsg = document.createElement('div');
+                userMsg.classList.add('message', 'user');
+                userMsg.textContent = text;
+                chatBox.appendChild(userMsg);
+                chatBox.scrollTop = chatBox.scrollHeight;
+                userInput.value = '';
+
+                // ---------------- TYPING INDICATOR ----------------
+                const typing = document.createElement('div');
+                typing.classList.add('message', 'bot', 'typing');
+                typing.innerHTML = `
+                    <div class="typing-indicator">
+                        <span></span><span></span><span></span>
+                    </div>
+                    <small class="typing-text">AI is typing...</small>
+                `;
+                chatBox.appendChild(typing);
+                chatBox.scrollTop = chatBox.scrollHeight;
+
+                // ---------------- CALL API ----------------
+                let botResponse = "Sorry, something went wrong.";
+
+                try {
+                    const response = await fetch(CHAT_URL, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "Authorization": "Bearer " + authToken
+                        },
+                        body: JSON.stringify({ 
+                            message: text,
+                            account_id: "2132761792",
+                            client_id: "193900" 
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    // Assuming API response format: { "reply": "some text" }
+                    botResponse = data.response || JSON.stringify(data);
+
+                } catch (error) {
+                    botResponse = "Failed to connect to server.";
+                    console.error(error);
+                }
+
+                // Remove typing loader
+                setTimeout(() => {
+                    typing.remove();
+
+                    const botMsg = document.createElement('div');
+                    botMsg.classList.add('message', 'bot');
+                    chatBox.appendChild(botMsg);
+
+                    typeText(botMsg, " " + botResponse);
+
+                }, 500);
+
+            }
+
+            // Typing animation function
+            function typeText(element, text) {
+                let index = 0;
+                const speed = 35;
+
+                const typingInterval = setInterval(() => {
+                    element.textContent += text.charAt(index);
+                    index++;
+
+                    if (index >= text.length) {
+                        clearInterval(typingInterval);
+                    }
+                    chatBox.scrollTop = chatBox.scrollHeight;
+                }, speed);
+            }
+        </script>
+    </body>
+</html>
