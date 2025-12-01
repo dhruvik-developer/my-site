@@ -7,6 +7,7 @@
 
         <link rel="stylesheet" href="Chatbot.css" />
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+        <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     </head>
 
     <body>
@@ -40,187 +41,219 @@
             </div>
         </div>
 
-    <script>
-        const sendBtn = document.getElementById("send-btn");
-        // const stopBtn = document.getElementById("stop-btn");
-        const userInput = document.getElementById("user-input");
-        const chatBox = document.getElementById("chat-box");
-        const suggestions = document.querySelectorAll('.suggestion');
+        <script>
+            const sendBtn = document.getElementById("send-btn");
+            const userInput = document.getElementById("user-input");
+            const chatBox = document.getElementById("chat-box");
+            const suggestions = document.querySelectorAll('.suggestion');
 
-        const LOGIN_URL = "https://beaa837d4767.ngrok-free.app/login";
-        const CHAT_URL = "https://beaa837d4767.ngrok-free.app/chat";
-         
+            const LOGIN_URL = "https://spherulate-unproclaimed-wade.ngrok-free.dev/login";
+            const CHAT_URL = "https://spherulate-unproclaimed-wade.ngrok-free.dev/chat";
 
-        let authToken = "";
-        let abortController = null;
-        let typingInterval = null;
-        let isProcessing = false;
-        let stopRequested = false;
+            let authToken = "";
+            let chatSessionId = "";
+            let abortController = null;
+            let typingInterval = null;
+            let isProcessing = false;
+            let stopRequested = false;
 
-        function enableInput() {
-            isProcessing = false;
-            sendBtn.disabled = false;
-            userInput.disabled = false;
-            userInput.focus();
-        }
+            function enableInput() {
+                isProcessing = false;
+                sendBtn.disabled = false;
+                userInput.disabled = false;
+                userInput.focus();
+            }
 
-        // Auto Login
-        async function loginUser() {
-            try {
+            // Auto Login
+            async function loginUser() {
+                try {
                 const res = await fetch(LOGIN_URL, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
-                        username: "daniel",
-                        password: "Admin@123",
-                        rememberMe: true
+                    username: "daniel",
+                    password: "Admin@123",
+                    rememberMe: true
                     })
                 });
 
                 const data = await res.json();
                 authToken = data.token || "";
-                console.log("Token loaded:", authToken);
-
-            } catch (e) {
+                } catch (e) {
                 console.error("Login failed:", e);
+                }
             }
-        }
 
-        loginUser();
-        setInterval(loginUser, 420000);
+            loginUser();
+            setInterval(loginUser, 420000);
 
-        // STOP BUTTON
-        // stopBtn.addEventListener("click", () => {
-        //     stopRequested = true;
-
-        //     if (abortController) abortController.abort();
-        //     if (typingInterval) clearInterval(typingInterval);
-
-        //     stopBtn.style.display = "none";
-        //     enableInput();
-        // });
-
-        // Suggestions
-        suggestions.forEach(btn => {
-            btn.addEventListener("click", () => {
+            // Suggestions
+            suggestions.forEach(btn => {
+                btn.addEventListener("click", () => {
                 userInput.value = btn.innerText;
                 sendMessage();
+                });
             });
-        });
 
-        sendBtn.addEventListener("click", () => {
-            if (isProcessing) return;
-            sendMessage();
-        });
-        userInput.addEventListener("keypress", e => {
-            if (e.key === "Enter") {
+            sendBtn.addEventListener("click", () => {
                 if (isProcessing) return;
                 sendMessage();
-            }
-        });
+            });
+            userInput.addEventListener("keypress", e => {
+                if (e.key === "Enter") {
+                if (isProcessing) return;
+                sendMessage();
+                }
+            });
 
-        async function sendMessage() {
+            async function sendMessage() {
+                if (isProcessing) return;
+                isProcessing = true;
+                stopRequested = false;
 
-            if (isProcessing) return;
-            isProcessing = true;
-            stopRequested = false;
-
-            const text = userInput.value.trim();
-            if (!text) {
-                isProcessing = false;
-                return;
-            }
-
-            sendBtn.disabled = true;
-            userInput.disabled = true;
-            // stopBtn.style.display = "inline-block";
-
-            // USER MESSAGE
-            const userMsg = document.createElement('div');
-            userMsg.classList.add('message', 'user');
-            userMsg.textContent = text;
-            chatBox.appendChild(userMsg);
-            chatBox.scrollTop = chatBox.scrollHeight;
-            userInput.value = "";
-
-            // TYPING INDICATOR
-            const typing = document.createElement('div');
-            typing.classList.add('message', 'bot', 'typing');
-            typing.innerHTML = `
-                <div class="typing-indicator">
-                    <span></span><span></span><span></span>
-                </div>
-                <small class="typing-text">AI is typing...</small>
-            `;
-            chatBox.appendChild(typing);
-            chatBox.scrollTop = chatBox.scrollHeight;
-
-            let botResponse = "";
-
-            abortController = new AbortController();
-
-            try {
-                const res = await fetch(CHAT_URL, {
-                    method: "POST",
-                    signal: abortController.signal,
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Authorization": "Bearer " + authToken
-                    },
-                    body: JSON.stringify({
-                        message: text,
-                        account_id: "2132761792",
-                        client_id: "193900"
-                    })
-                });
-
-                const data = await res.json();
-                botResponse = data.response || JSON.stringify(data) || "No response found.";
-
-            } catch (e) {
-                if (!stopRequested) botResponse = "Request failed.";
-            }
-
-            typing.remove();
-
-            const botMsg = document.createElement('div');
-            botMsg.classList.add('message', 'bot');
-            chatBox.appendChild(botMsg);
-
-            typeText(botMsg, botResponse);
-        }
-
-        // Typing Animation
-        function typeText(element, text) {
-            let idx = 0;
-            const speed = 35;
-
-            typingInterval = setInterval(() => {
-
-                if (stopRequested) {
-                    clearInterval(typingInterval);
-                    typingInterval = null;
-                    // stopBtn.style.display = "none";
-                    enableInput();
+                const text = userInput.value.trim();
+                if (!text) {
+                    isProcessing = false;
                     return;
                 }
 
-                element.textContent += text.charAt(idx);
-                idx++;
+                sendBtn.disabled = true;
+                userInput.disabled = true;
 
-                if (idx >= text.length) {
-                    clearInterval(typingInterval);
-                    typingInterval = null;
+                // USER MESSAGE
+                const userMsg = document.createElement('div');
+                userMsg.classList.add('message', 'user');
+                userMsg.textContent = text;
+                chatBox.appendChild(userMsg);
+                chatBox.scrollTop = chatBox.scrollHeight;
+                userInput.value = "";
 
-                    // stopBtn.style.display = "none";
-                    enableInput();
-                }
-
+                // TYPING INDICATOR
+                const typing = document.createElement('div');
+                typing.classList.add('message', 'bot', 'typing');
+                typing.innerHTML = `
+                    <div class="typing-indicator">
+                        <span></span><span></span><span></span>
+                    </div>
+                    <small class="typing-text">AI is typing...</small>
+                `;
+                chatBox.appendChild(typing);
                 chatBox.scrollTop = chatBox.scrollHeight;
 
-            }, speed);
-        }
-    </script>
+                let botResponse = "";
 
+                abortController = new AbortController();
+
+                try {
+                    const res = await fetch(CHAT_URL + (chatSessionId ? `?session_id=${chatSessionId}` : ""), {
+                        method: "POST",
+                        signal: abortController.signal,
+                        headers: {
+                            "Content-Type": "application/json",
+                            "Authorization": "Bearer " + authToken
+                        },
+                        body: JSON.stringify({
+                            message: text,
+                            account_id: "2132761792",
+                            client_id: "193900",
+                            session_id: chatSessionId || null
+                        })
+                    });
+
+                    const data = await res.json();
+                    if (data.session_id) {
+                        chatSessionId = data.session_id;
+                    }
+                    botResponse = data.response || "No response found.";
+
+                    let parsed = null;
+                    try {
+                        parsed = JSON.parse(data.response);
+                    } catch (e) {
+                        parsed = null;
+                    }
+
+                    if (parsed && parsed.pdf_url) {
+                        let pdfURL = parsed.pdf_url;
+                        if (pdfURL.startsWith("file:///") || !/^https?:\/\//i.test(pdfURL)) {
+                            const BASE_URL = "https://spherulate-unproclaimed-wade.ngrok-free.dev";
+                            pdfURL = BASE_URL + pdfURL.replace(/^file:\/\//i, "");
+                        }
+                        botResponse = `
+                            ${parsed.message}<br><br>
+                            <a href="${pdfURL}" target="_blank"
+                                style="color:#0d6efd;font-weight:bold;text-decoration:none;display:inline-block;">
+                                📄 Download Statement Report (PDF)
+                            </a>
+                        `;
+                    }
+                } catch (e) {
+                    if (!stopRequested) botResponse = "Request failed.";
+                }
+
+                // remove typing indicator
+                typing.remove();
+
+                const botMsg = document.createElement('div');
+                botMsg.classList.add('message', 'bot');
+
+                // Parse markdown -> html
+                const html = marked.parse(botResponse);
+
+                // Use DOMParser to extract plain text from HTML
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                const plainText = (doc.body.textContent || "").trim();
+                const hasHTML = /<\s*(br|a|p|div|span|img|strong|em|h[1-6])[\s\S]*?>/i.test(botResponse);
+
+                if (hasHTML) {
+                    botMsg.innerHTML = botResponse;
+                    chatBox.appendChild(botMsg);
+                    enableInput();
+                } else {
+                    chatBox.appendChild(botMsg);
+                    typeText(botMsg, plainText, () => {
+                        botMsg.innerHTML = marked.parse(botResponse);
+                        enableInput();
+                    });
+                }
+            }
+
+            // Typing Animation (accepts onComplete callback)
+            function typeText(element, text, onComplete) {
+                let idx = 0;
+                const speed = 10;
+
+                // ensure element starts empty
+                element.textContent = "";
+
+                // clear previous interval if any
+                if (typingInterval) {
+                    clearInterval(typingInterval);
+                    typingInterval = null;
+                }
+
+                typingInterval = setInterval(() => {
+                    if (stopRequested) {
+                        clearInterval(typingInterval);
+                        typingInterval = null;
+                        if (typeof onComplete === "function") onComplete();
+                        return;
+                    }
+
+                    element.textContent += text.charAt(idx);
+                    idx++;
+
+                    // scroll to bottom while typing
+                    chatBox.scrollTop = chatBox.scrollHeight;
+
+                    if (idx >= text.length) {
+                        clearInterval(typingInterval);
+                        typingInterval = null;
+                        if (typeof onComplete === "function") onComplete();
+                    }
+                }, speed);
+            }
+        </script>
     </body>
 </html>
